@@ -104,11 +104,26 @@ class ConnectFourBoard:
         board_str = '\n'.join(' '.join(symbols[cell] for cell in row) for row in self.board)
         return board_str + "\n" + " ".join(map(str, range(self.width)))
     
-    def check_winner(self) -> Tuple[int, int]:
-        """Count the number of connected fours for each player."""
+    def check_winner(self) -> Optional[int]:
+        """
+        Determines the winner of the game after the board is full.
+
+        Returns:
+            1 if Player 1 has more connected-fours,
+            2 if Player 2 has more connected-fours,
+            None if it's a tie or the game isn't over yet.
+        """
         player1_score = self.count_fours(1)
         player2_score = self.count_fours(2)
-        return player1_score, player2_score
+
+        if not self.is_full():  
+            return None
+
+        if player1_score > player2_score:
+            return 1
+        elif player2_score > player1_score:
+            return 2
+        return None 
 
     def count_fours(self, player: int) -> int:
         """Count all connected-four sequences for a given player."""
