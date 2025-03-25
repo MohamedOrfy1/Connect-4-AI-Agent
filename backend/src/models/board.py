@@ -104,6 +104,50 @@ class ConnectFourBoard:
         board_str = '\n'.join(' '.join(symbols[cell] for cell in row) for row in self.board)
         return board_str + "\n" + " ".join(map(str, range(self.width)))
     
+    @staticmethod
+    def board_from_string(board_str: str) -> 'ConnectFourBoard':
+        """
+        Creates a ConnectFourBoard from a string representation.
+        
+        Args:
+            board_str: String representation of the board (output from __str__)
+            
+        Returns:
+            A new ConnectFourBoard instance
+        """
+        lines = board_str.split('\n')
+        if not lines:
+            return ConnectFourBoard()
+        
+        # The last line contains column numbers, so we exclude it
+        board_lines = [line.strip() for line in lines[:-1] if line.strip()]
+        height = len(board_lines)
+        if height == 0:
+            return ConnectFourBoard()
+        
+        width = len(board_lines[0].split())
+        
+        # Create a new board
+        board = ConnectFourBoard(width, height)
+        
+        # Mapping from symbols to player numbers (reverse of the one in __str__)
+        player_map = {'.': 0, 'X': 1, 'O': 2}
+        
+        # Parse each cell
+        for row, line in enumerate(board_lines):
+            cells = line.split()
+            for col, symbol in enumerate(cells):
+                if symbol in player_map:
+                    board.board[row, col] = player_map[symbol]
+                else:
+                    raise ValueError(f"Invalid symbol '{symbol}' in board string")
+        
+        # Determine current player by counting pieces
+        total_pieces = np.sum(board.board > 0)
+        board.current_player = 1 if total_pieces % 2 == 0 else 2
+        
+        return board
+    
     def check_winner(self) -> Optional[int]:
         """
         Determines the winner of the game after the board is full.
