@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import './App.css'
+import Board from './components/Board/Board'
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <div className='App'>
-      <h1>Connect 4 game</h1>
+      <Board />
     </div>
   )
 }
