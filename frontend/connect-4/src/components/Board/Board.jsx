@@ -1,16 +1,23 @@
 import React from 'react'
 import './Board.css'
-const Board = () => {
-    const tiles = 
-    new Array(6)
-        .fill()
-        .map(_ => new Array(7).fill(''))
+import Cell from '../Cell/Cell'
 
-    return <div className="board">
-        {tiles.map((row,i) => 
-            row.map((_,j) => <div key={i+'-'+j}/>)
-        )}
-    </div>  
+export default function Board({ tiles, onDrop }) {
+
+    return (
+        <div className="board">
+            {tiles.map((row, rowIndex) =>
+                row.map((cell, colIndex) => (
+                    <Cell
+                        key={`${rowIndex}-${colIndex}`}
+                        value={cell}
+                        rowIndex={rowIndex}
+                        colIndex={colIndex}
+                        onClick={() => onDrop(colIndex)}
+                    />
+                ))
+            )}
+        </div>
+    );
 }
 
-export default Board

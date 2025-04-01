@@ -1,0 +1,21 @@
+.cell {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black; 
+    cursor: pointer;
+}
+
+.cell.red {
+    background-color: rgb(255, 0, 0);
+}
+
+.cell.yellow {
+    background-color: rgb(255, 255, 0);
+}
+
+.cell.empty {
+    background-color: rgb(255, 255, 255);
+}
