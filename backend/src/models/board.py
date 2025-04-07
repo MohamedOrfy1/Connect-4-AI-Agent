@@ -150,24 +150,19 @@ class ConnectFourBoard:
     
     def check_winner(self) -> Optional[int]:
         """
-        Determines the winner of the game after the board is full.
+        Determines if there is a winner in the current board state.
+        A player wins by having at least one connected-four sequence.
 
         Returns:
-            1 if Player 1 has more connected-fours,
-            2 if Player 2 has more connected-fours,
-            None if it's a tie or the game isn't over yet.
+            1 if Player 1 has a connected-four,
+            2 if Player 2 has a connected-four,
+            None if no player has a connected-four.
         """
-        player1_score = self.count_fours(1)
-        player2_score = self.count_fours(2)
-
-        if not self.is_full():  
-            return None
-
-        if player1_score > player2_score:
+        if self.count_fours(1) > 0:
             return 1
-        elif player2_score > player1_score:
+        if self.count_fours(2) > 0:
             return 2
-        return None 
+        return None
 
     def count_fours(self, player: int) -> int:
         """Count all connected-four sequences for a given player."""
