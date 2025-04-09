@@ -1,7 +1,3 @@
-# --- Updated tests/test_minimax.py ---
-
-import pytest
-import numpy as np # Import numpy if needed for direct board manipulation checks
 from src.algorithms.minimax import eval, maximize, minimize, decision
 from src.models.board import ConnectFourBoard
 
@@ -131,14 +127,13 @@ def test_maximize():
         board.board[board.height - 1, i] = 1 
     board.current_player = 1 # Set current player to 1 (AI)
 
-    # FIX: Unpack only 2 return values
-    move, utility = maximize(board, 1) # Depth 1 is enough to see immediate win
+    move, _, utility = maximize(board, 1) # Depth 1 is enough to see immediate win
     
     print(f"\nMaximize Test - Initial Board:\n{board}")
     print(f"Maximize Test - Chosen move: {move}, Utility: {utility}")
     
     assert move == 3, "Maximize should choose the winning move (col 3)"
-    # Optional: Check if utility reflects a win (close to 10000)
+
     assert utility > 9000, "Utility for immediate win should be very high"
 
 def test_minimize():
@@ -155,7 +150,7 @@ def test_minimize():
     # So, minimize needs depth 2 to "see" the result of maximize(depth 1).
     # OR rely on the explicit blocking check within minimize if implemented.
     # Let's assume the explicit blocking check exists OR test with depth 2.
-    move, utility = minimize(board, 2) 
+    move,_, utility = minimize(board, 2) 
     
     print(f"\nMinimize Test - Initial Board:\n{board}")
     print(f"Minimize Test - Chosen move: {move}, Utility: {utility}")
