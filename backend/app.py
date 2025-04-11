@@ -44,7 +44,7 @@ async def get_ai_move(game_state: GameState):
         logger.debug(f"Board state:\n{board}")
         
         # Get AI move
-        move = decision(board, 3)
+        move = decision(board, 4)
         
         logger.debug(f"AI chose move: {move}")
         

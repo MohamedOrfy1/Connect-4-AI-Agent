@@ -4,7 +4,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests
 import numpy as np
+import logging
 from src.models.board import ConnectFourBoard
+from src.algorithms.minimax import eval
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def print_board(board):
     """Helper function to print the board state."""
@@ -18,6 +24,13 @@ def test_api(board_state, current_player, expected_move=None, description=""):
     print(f"\nTest: {description}")
     print("Board State:")
     print_board(board_state)
+    
+    # Create board and evaluate score
+    board = ConnectFourBoard()
+    board.board = np.array(board_state, dtype=int)
+    board.current_player = current_player
+    score = eval(board)
+    print(f"Initial board evaluation score: {score}")
     
     response = requests.post(
         "http://localhost:8000/ai/move",
@@ -33,6 +46,11 @@ def test_api(board_state, current_player, expected_move=None, description=""):
         if expected_move is not None:
             print(f"Expected Move: {expected_move}")
             print(f"Test {'PASSED' if result['move'] == expected_move else 'FAILED'}")
+            
+            # Evaluate score after making the AI's move
+            board.drop_piece(result['move'])
+            new_score = eval(board)
+            print(f"Score after AI move: {new_score}")
     else:
         print(f"Error: {response.status_code}")
         print(response.text)
