@@ -121,7 +121,11 @@ def eval(board: ConnectFourBoard) -> int:
     
     return score
 
-def maximize(state: ConnectFourBoard, k: int, current_depth: int = 0) :
+def maximize(state: ConnectFourBoard, k: int, current_depth: int = 0
+             , use_alpha_beta: bool = False, 
+             alpha: float = float('-inf'), 
+             beta: float = float('inf')):
+    
     is_terminal = state.is_full()
     if current_depth == k or is_terminal:
         return None, None, eval(state)
@@ -133,68 +137,154 @@ def maximize(state: ConnectFourBoard, k: int, current_depth: int = 0) :
         new_board = state.copy()
         new_board.drop_piece(move) # child state 
         
-        # Evaluate from current player's perspective before switching
-        score = eval(new_board)
-        if score == 10000:  # If we can win immediately, do it
-            return move, new_board.__str__(), score
-            
-        # Switch to opponent's turn and look ahead
-        new_board.current_player = 3 - new_board.current_player
-        _, _, utility = minimize(new_board, k, current_depth + 1)
+        _, _, utility = minimize(new_board, k, current_depth + 1, use_alpha_beta, alpha, beta)
         if utility > max_utility:
             max_utility = utility
             max_move = move
             max_child = new_board
-        
+
+        if use_alpha_beta:
+            if max_utility >= beta:
+                break  # Beta cut-off (since alpha >= beta)
+            if max_utility > alpha:
+                alpha = max_utility
+                        
     return max_move, max_child.__str__(), max_utility
 
-def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0):
+def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0,
+             use_alpha_beta: bool = False,
+             alpha: float = float('-inf'),
+             beta: float = float('inf')):
+    
     is_terminal = state.is_full()
     if current_depth == k or is_terminal:
         return None, None, eval(state)
     
     min_move, min_child, min_utility = None, None, float('inf')
 
-    # First, check if opponent has a winning move
-    opponent = 3 - state.current_player
-    opponent_win_col = None
-    
-    # Check each column to see if opponent can win there
-    for col in range(state.width):
-        if col not in state.get_valid_moves():
-            continue
-            
-        test_board = state.copy()
-        test_board.current_player = opponent  # Temporarily switch to opponent
-        test_board.drop_piece(col)  # Try opponent's move
-        
-        # Check if this would be a winning move for opponent
-        if test_board.count_fours(opponent) > 0:
-            opponent_win_col = col
-            break
-    
-    # If opponent can win in a column, we must block it
-    if opponent_win_col is not None:
-        new_board = state.copy()
-        new_board.drop_piece(opponent_win_col)
-        return opponent_win_col, new_board.__str__(), -9000
-    
-    # Otherwise, proceed with normal minimax
     valid_moves = state.get_valid_moves()
     for move in valid_moves:
         new_board = state.copy()
         new_board.drop_piece(move)  # child state
-        _, _, utility = maximize(new_board, k, current_depth + 1)
+
+        _, _, utility = maximize(new_board, k, current_depth + 1, use_alpha_beta, alpha, beta)
         if utility < min_utility:
             min_utility = utility
             min_move = move
             min_child = new_board
 
+        if use_alpha_beta:
+            if min_utility <= alpha:
+                break
+            if min_utility < beta:
+                beta = min_utility
+
     return min_move, min_child.__str__(), min_utility
 
-def decision(state: ConnectFourBoard, k: int):
-    best_move, _, _ = maximize(state, k)
+def decision(state: ConnectFourBoard, k: int, 
+             use_alpha_beta: bool = False, 
+             use_expected_minimax: bool = False) -> int:
+    if use_alpha_beta:
+        alpha = float('-inf')
+        beta = float('inf')
+        best_move, _, _ = maximize(state, k, 0, True, alpha, beta)
+
+    elif use_expected_minimax:
+        best_move, _, _ = expected_max(state, k, 0)
+    
+    else:
+        # Regular minimax without pruning
+        best_move, _, _ = maximize(state, k, 0, False)
+        
     if best_move is not None:
         return best_move
     else:
         return -1
+    
+
+def expected_max(state: ConnectFourBoard, k: int, current_depth: int = 0):
+    if current_depth == k or state.is_full():
+        return None, None, eval(state)
+
+    best_move = None
+    best_child_str = None
+    best_expected_utility = float('-inf')
+
+    for move in state.get_valid_moves():
+        expected_utility = 0.0
+
+        neighbors = [move]
+        probs = [0.6]
+
+        valid_moves = state.get_valid_moves()
+        left = move - 1 if move - 1 in valid_moves else None
+        right = move + 1 if move + 1 in valid_moves else None
+
+        if left is not None and right is not None:
+            neighbors += [left, right]
+            probs += [0.2, 0.2]
+        elif left is not None:
+            neighbors.append(left)
+            probs.append(0.4)
+        elif right is not None:
+            neighbors.append(right)
+            probs.append(0.4)
+
+        # Evaluate each possible outcome and accumulate expected utility
+        for col, prob in zip(neighbors, probs):
+            new_state = state.copy()
+            new_state.drop_piece(col)
+            _, _, utility = expected_min(new_state, k, current_depth + 1)
+            expected_utility += prob * utility
+
+        if expected_utility > best_expected_utility:
+            best_expected_utility = expected_utility
+            best_move = move
+            best_child_str = new_state.__str__()
+
+    return best_move, best_child_str, best_expected_utility
+
+
+
+def expected_min(state: ConnectFourBoard, k: int, current_depth: int = 0):
+    if current_depth == k or state.is_full():
+        return None, None, eval(state)
+
+    best_move = None
+    best_child_str = None
+    best_expected_utility = float('inf')
+
+    for move in state.get_valid_moves():
+        expected_utility = 0.0
+
+        neighbors = [move]
+        probs = [0.6]
+
+        valid_moves = state.get_valid_moves()
+        left = move - 1 if move - 1 in valid_moves else None
+        right = move + 1 if move + 1 in valid_moves else None
+
+        if left is not None and right is not None:
+            neighbors += [left, right]
+            probs += [0.2, 0.2]
+        elif left is not None:
+            neighbors.append(left)
+            probs.append(0.4)
+        elif right is not None:
+            neighbors.append(right)
+            probs.append(0.4)
+
+        # Evaluate each possible outcome and accumulate expected utility
+        for col, prob in zip(neighbors, probs):
+            new_state = state.copy()
+            new_state.drop_piece(col)
+            _, _, utility = expected_max(new_state, k, current_depth + 1)
+            expected_utility += prob * utility
+
+        if expected_utility < best_expected_utility:
+            best_expected_utility = expected_utility
+            best_move = move
+            best_child_str = new_state.__str__()
+
+    return best_move, best_child_str, best_expected_utility
+
