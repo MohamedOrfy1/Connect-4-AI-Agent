@@ -2,10 +2,9 @@ import React from 'react'
 import './Board.css'
 import Cell from '../Cell/Cell'
 
-export default function Board({ tiles, onDrop }) {
-
+export default function Board({ tiles, onDrop, disabled }) {
     return (
-        <div className="board">
+        <div className={`board ${disabled ? 'disabled' : ''}`}>
             {tiles.map((row, rowIndex) =>
                 row.map((cell, colIndex) => (
                     <Cell
@@ -14,6 +13,7 @@ export default function Board({ tiles, onDrop }) {
                         rowIndex={rowIndex}
                         colIndex={colIndex}
                         onClick={() => onDrop(colIndex)}
+                        disabled={disabled}
                     />
                 ))
             )}
