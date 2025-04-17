@@ -1,8 +1,43 @@
-.board{
+.board {
     display: grid;
-    grid-template-columns: repeat(7, var(--size));
-    grid-template-rows: repeat(6, var(--size));
+    grid-template-columns: repeat(7, 80px);
+    grid-template-rows: repeat(6, 80px);
+    gap: 8px;
+    background-color: #1a73e8;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin: 20px auto;
+    position: relative;
 }
+
+.board.disabled {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.board::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('./board.svg');
+    background-size: cover;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
 .board .cell{
     background: url('board.svg');
+}
+
+@media (max-width: 600px) {
+    .board {
+        grid-template-columns: repeat(7, 45px);
+        grid-template-rows: repeat(6, 45px);
+        gap: 4px;
+        padding: 8px;
+    }
 }
