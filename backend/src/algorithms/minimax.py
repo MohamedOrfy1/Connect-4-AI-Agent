@@ -13,15 +13,23 @@ def eval(board: ConnectFourBoard) -> int:
     4. Two in a row with empty spaces
     """
     # Terminal state check
+    # Example of a winning state for current player (O):
+    # . . . . . . .
+    # . . . . . . .
+    # . . O O O O .  <- Four in a row (win)
+    # . . X X O X .
+    # . . O X X O .
+    # . X O X O X .
+    # Score: 10000
     if board.is_full():
         winner = board.check_winner()
         if winner == board.current_player:
-            return 10000  # Current player wins
+            return 10000
         elif winner == 3 - board.current_player:
-            return -10000  # Opponent wins
-        return 0  # Draw
+            return -10000
+        return 0
     
-    # Check for immediate wins (four in a row)
+    # Check for immediate wins
     current_fours = board.count_fours(board.current_player)
     opponent_fours = board.count_fours(3 - board.current_player)
     if current_fours > 0:
@@ -33,120 +41,156 @@ def eval(board: ConnectFourBoard) -> int:
     current_player = board.current_player
     opponent = 3 - current_player
     
-    # Check for winning threats (three in a row with space)
-    opponent_can_win = False
+    # Count number of threats (three in a row with space)
+    current_threats = 0
+    opponent_threats = 0
     
-    # Check horizontal threats
+    # Check horizontal threats and patterns
+    # Example of horizontal threat:
+    # . . . . . . .
+    # . . . . . . .
+    # . . O O O . .  <- Three in a row with space (threat)
+    # . . X X O X .  Score: 600 + (2 * 50) = 700
+    # . . O X X O .
+    # . X O X O X .
     for row in range(board.height):
         for col in range(board.width - 3):
             window = board.board[row, col:col+4]
+            # Three in a row threats
+            if sum(window == current_player) == 3 and sum(window == 0) == 1:
+                current_threats += 1
+                score += 600 + (row * 50)  # More points for lower rows
             if sum(window == opponent) == 3 and sum(window == 0) == 1:
-                opponent_can_win = True
-                break
-        if opponent_can_win:
-            break
+                opponent_threats += 1
+                score -= 600 + (row * 50)
+            
+            # Two in a row patterns
+            # Example of connected twos:
+            # . . . . . . .
+            # . . . . . . .
+            # . . . . . . .
+            # . . O O . . .  <- Connected two with spaces
+            # . . X X O X .  Score: 300
+            # . X O X O X .
+            #
+            # Example of separated twos:
+            # . . . . . . .
+            # . . . . . . .
+            # . . . . . . .
+            # . . O . O . .  <- Separated two with spaces
+            # . . X X O X .  Score: 200
+            # . X O X O X .
+            if sum(window == current_player) == 2 and sum(window == 0) == 2:
+                # Connected twos are worth more
+                if any(window[i:i+2].all() == current_player for i in range(3)):
+                    score += 300
+                else:
+                    score += 200
+            if sum(window == opponent) == 2 and sum(window == 0) == 2:
+                if any(window[i:i+2].all() == opponent for i in range(3)):
+                    score -= 300
+                else:
+                    score -= 200
     
     # Check vertical threats
-    if not opponent_can_win:
-        for row in range(board.height - 3):
-            for col in range(board.width):
-                window = board.board[row:row+4, col]
-                if sum(window == opponent) == 3 and sum(window == 0) == 1:
-                    opponent_can_win = True
-                    break
-            if opponent_can_win:
-                break
-    
-    # Check diagonal threats (positive slope)
-    if not opponent_can_win:
-        for row in range(board.height - 3):
-            for col in range(board.width - 3):
-                window = [board.board[row+i, col+i] for i in range(4)]
-                if sum(x == opponent for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                    opponent_can_win = True
-                    break
-            if opponent_can_win:
-                break
-    
-    # Check diagonal threats (negative slope)
-    if not opponent_can_win:
-        for row in range(3, board.height):
-            for col in range(board.width - 3):
-                window = [board.board[row-i, col+i] for i in range(4)]
-                if sum(x == opponent for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                    opponent_can_win = True
-                    break
-            if opponent_can_win:
-                break
-    
-    if opponent_can_win:
-        return -9000  # Almost as bad as losing
-    
-    # 2. Three in a row with space (weight: 500)
-    # Check horizontal threes
-    for row in range(board.height):
-        for col in range(board.width - 3):
-            window = board.board[row, col:col+4]
-            # Check for current player's threes
-            if sum(window == current_player) == 3 and sum(window == 0) == 1:
-                score += 750
-            # Check for opponent's threes (higher weight to prioritize blocking)
-            if sum(window == opponent) == 3 and sum(window == 0) == 1:
-                score -= 750
-    
-    # Check vertical threes
+    # Example of vertical threat:
+    # . . . . . . .
+    # . . . . . . .
+    # . . O . . . .
+    # . . O . . . .  <- Three in a row with space above
+    # . . O X X O .  Score: 800
+    # . X O X O X .
     for row in range(board.height - 3):
         for col in range(board.width):
             window = board.board[row:row+4, col]
             if sum(window == current_player) == 3 and sum(window == 0) == 1:
-                score += 750
+                current_threats += 1
+                score += 800  # Vertical threats are usually stronger
             if sum(window == opponent) == 3 and sum(window == 0) == 1:
-                score -= 750
+                opponent_threats += 1
+                score -= 800
     
-    # Check for potential threats (two in a row with two spaces)
-    for row in range(board.height):
+    # Check diagonal threats
+    # Example of positive slope diagonal threat:
+    # . . . . . . .
+    # . . . . . . .
+    # . . O . . . .
+    # . . X O . . .  <- Diagonal three with space
+    # . . O X O . .  Score: 700
+    # . X O X O X .
+    #
+    # Example of negative slope diagonal threat:
+    # . . . . . . .
+    # . . . . . . .
+    # . . . . O . .
+    # . . . O X . .  <- Diagonal three with space
+    # . . O X X O .  Score: 700
+    # . X O X O X .
+    for row in range(board.height - 3):
         for col in range(board.width - 3):
-            window = board.board[row, col:col+4]
-            # Check for current player's potential threats
-            if sum(window == current_player) == 2 and sum(window == 0) == 2:
-                # Check if the two pieces are connected
-                if any(window[i:i+2].all() == current_player for i in range(3)):
-                    score += 200  # Higher weight for connected pieces with spaces
-                else:
-                    score += 100  # Regular weight for non-connected pieces
-            # Check for opponent's potential threats
-            if sum(window == opponent) == 2 and sum(window == 0) == 2:
-                if any(window[i:i+2].all() == opponent for i in range(3)):
-                    score -= 200  # Higher weight for opponent's connected pieces
-                else:
-                    score -= 100  # Regular weight for opponent's non-connected pieces
+            # Positive slope diagonal
+            window = [board.board[row+i, col+i] for i in range(4)]
+            if sum(x == current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                current_threats += 1
+                score += 700
+            if sum(x == opponent for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                opponent_threats += 1
+                score -= 700
+            
+            # Negative slope diagonal
+            if row >= 3:
+                window = [board.board[row-i, col+i] for i in range(4)]
+                if sum(x == current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                    current_threats += 1
+                    score += 700
+                if sum(x == opponent for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                    opponent_threats += 1
+                    score -= 700
     
-    # 3. Center column control (reduce weight further)
+    # Multiple threats bonus
+    # Example of multiple threats:
+    # . . . . . . .
+    # . . . . . . .
+    # . . O O O . .  <- Horizontal threat
+    # . . O X O . .  <- Diagonal threat
+    # . . O X X O .  Score: Original threats + 2000 bonus
+    # . X O X O X .
+    if current_threats >= 2:
+        score += 2000  # Significant bonus for having multiple threats
+    if opponent_threats >= 2:
+        score -= 2500  # Even bigger penalty for allowing multiple opponent threats
+    
+    # Center control (weighted by row)
+    # Example of center control:
+    # . . . . . . .
+    # . . . O . . .
+    # . . . O . . .  <- Center column control
+    # . . . O . . .  Score: (50 + 10) + (50 + 20) + (50 + 30) = 210
+    # . . X X O X .
+    # . X O X O X .
     center = board.width // 2
     for row in range(board.height):
         if board.board[row][center] == current_player:
-            score += 10  # Further reduce center weight
+            score += 50 + (row * 10)  # More value for center pieces in lower rows
         elif board.board[row][center] == opponent:
-            score -= 10
+            score -= 50 + (row * 10)
     
-    # 4. Two in a row with empty spaces
+    # Adjacent center columns control
+    # Example of adjacent center control:
+    # . . . . . . .
+    # . . O O O . .  <- Control of columns 2,3,4
+    # . . O X O . .  Score: Multiple of (30 + row * 5)
+    # . . O X X O .  for each piece in columns 2 and 4
+    # . X O X O X .
     for row in range(board.height):
-        for col in range(board.width - 1):
-            if board.board[row][col] == current_player and board.board[row][col + 1] == current_player:
-                # Check if there's space on both sides
-                left_space = col > 0 and board.board[row][col-1] == 0
-                right_space = col < board.width-2 and board.board[row][col+2] == 0
-                if left_space or right_space:
-                    score += 150  # Higher weight for two in a row with space
-                else:
-                    score += 50   # Regular weight for two in a row
-            elif board.board[row][col] == opponent and board.board[row][col + 1] == opponent:
-                left_space = col > 0 and board.board[row][col-1] == 0
-                right_space = col < board.width-2 and board.board[row][col+2] == 0
-                if left_space or right_space:
-                    score -= 150  # Higher weight for opponent's two in a row with space
-                else:
-                    score -= 50   # Regular weight for opponent's two in a row
+        if board.board[row][center-1] == current_player:
+            score += 30 + (row * 5)
+        if board.board[row][center+1] == current_player:
+            score += 30 + (row * 5)
+        if board.board[row][center-1] == opponent:
+            score -= 30 + (row * 5)
+        if board.board[row][center+1] == opponent:
+            score -= 30 + (row * 5)
     
     return score
 
@@ -230,31 +274,93 @@ def decision(state: ConnectFourBoard, k: int,
     print(f"\nMaking decision for player {state.current_player}")
     print(f"Current board state:\n{state}")
     
-    # First, check for immediate winning moves
     valid_moves = state.get_valid_moves()
-    for move in valid_moves:
-        test_board = state.copy()
-        test_board.drop_piece(move)
-        if test_board.check_winner() == state.current_player:
-            print(f"Found winning move: {move}")
-            return move
     
-    # Then check for moves that block opponent's win
+    # First, check if opponent has an immediate win and block it
     opponent = 3 - state.current_player
     for move in valid_moves:
         test_board = state.copy()
         test_board.current_player = opponent
         test_board.drop_piece(move)
         if test_board.check_winner() == opponent:
-            print(f"Found blocking move: {move}")
+            print(f"Found blocking move for immediate opponent win: {move}")
             return move
     
-    # Check for moves that create multiple threats
-    best_move = None
-    max_threats = -1
+    # Then check for our immediate winning moves
     for move in valid_moves:
         test_board = state.copy()
         test_board.drop_piece(move)
+        if test_board.check_winner() == state.current_player:
+            # Verify this move doesn't allow opponent to win first
+            if move in valid_moves:
+                above_move_board = test_board.copy()
+                if above_move_board.is_valid_move(move):  # Check if there's space above
+                    above_move_board.current_player = opponent
+                    above_move_board.drop_piece(move)
+                    if above_move_board.check_winner() != opponent:  # Make sure opponent can't win above our move
+                        print(f"Found safe winning move: {move}")
+                        return move
+            else:
+                print(f"Found winning move: {move}")
+                return move
+    
+    # Check for opponent's two-move win threats
+    opponent_winning_moves = set()
+    for move in valid_moves:
+        test_board = state.copy()
+        test_board.current_player = opponent
+        test_board.drop_piece(move)
+        # Check if this move would give opponent a winning move next turn
+        next_valid_moves = test_board.get_valid_moves()
+        for next_move in next_valid_moves:
+            next_board = test_board.copy()
+            next_board.drop_piece(next_move)
+            if next_board.check_winner() == opponent:
+                opponent_winning_moves.add(move)
+                break
+    
+    # If opponent has multiple winning moves, try to block one of them
+    if len(opponent_winning_moves) >= 2:
+        # Find the best blocking move using evaluation
+        best_block = None
+        best_score = float('-inf')
+        for move in opponent_winning_moves:
+            test_board = state.copy()
+            test_board.drop_piece(move)
+            score = eval(test_board)
+            if score > best_score:
+                best_score = score
+                best_block = move
+        if best_block is not None:
+            print(f"Found blocking move for multiple threats: {best_block}")
+            return best_block
+    
+    # Check for moves that create multiple threats while preventing opponent wins
+    best_move = None
+    max_threats = -1
+    best_score = float('-inf')
+    
+    for move in valid_moves:
+        # Skip moves that would give opponent an immediate win next turn
+        if move in opponent_winning_moves:
+            continue
+            
+        test_board = state.copy()
+        test_board.drop_piece(move)
+        
+        # Check if this move allows opponent to win in their next move
+        allows_opponent_win = False
+        for opp_move in test_board.get_valid_moves():
+            opp_board = test_board.copy()
+            opp_board.current_player = opponent
+            opp_board.drop_piece(opp_move)
+            if opp_board.check_winner() == opponent:
+                allows_opponent_win = True
+                break
+        
+        if allows_opponent_win:
+            continue
+        
         threats = 0
         
         # Check horizontal threats
@@ -271,34 +377,39 @@ def decision(state: ConnectFourBoard, k: int,
                 if sum(window == state.current_player) == 3 and sum(window == 0) == 1:
                     threats += 1
         
-        # Check diagonal threats (positive slope)
+        # Check diagonal threats
         for row in range(test_board.height - 3):
             for col in range(test_board.width - 3):
+                # Positive slope
                 window = [test_board.board[row+i, col+i] for i in range(4)]
                 if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
                     threats += 1
+                
+                # Negative slope
+                if row >= 3:
+                    window = [test_board.board[row-i, col+i] for i in range(4)]
+                    if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                        threats += 1
         
-        # Check diagonal threats (negative slope)
-        for row in range(3, test_board.height):
-            for col in range(test_board.width - 3):
-                window = [test_board.board[row-i, col+i] for i in range(4)]
-                if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                    threats += 1
-        
-        # Also consider potential threats (two in a row with two empty spaces)
+        # Consider potential threats (two in a row with two empty spaces)
         for row in range(test_board.height):
             for col in range(test_board.width - 3):
                 window = test_board.board[row, col:col+4]
                 if sum(window == state.current_player) == 2 and sum(window == 0) == 2:
-                    threats += 0.5  # Half weight for potential threats
+                    threats += 0.5
         
-        if threats > max_threats:
+        # Calculate position score
+        score = eval(test_board)
+        
+        # Update best move if this creates more threats or has a better score
+        if threats > max_threats or (threats == max_threats and score > best_score):
             max_threats = threats
+            best_score = score
             best_move = move
-            print(f"Found move {move} with {threats} threats")
+            print(f"Found move {move} with {threats} threats and score {score}")
     
-    if max_threats > 0:
-        print(f"Chose move {best_move} creating {max_threats} threats")
+    if best_move is not None:
+        print(f"Chose move {best_move} creating {max_threats} threats with score {best_score}")
         return best_move
     
     # If no special moves found, use minimax
