@@ -1,0 +1,121 @@
+.settings-container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    width: 90%;
+    margin: 20px auto;
+}
+
+.settings-container h2 {
+    color: #1a73e8;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2em;
+}
+
+.settings-section {
+    margin-bottom: 30px;
+}
+
+.settings-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.algorithm-buttons,
+.starter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.algorithm-buttons button,
+.starter-buttons button {
+    background-color: white;
+    color: #1a73e8;
+    border: 2px solid #1a73e8;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 150px;
+    text-transform: none;
+    font-weight: normal;
+    letter-spacing: normal;
+}
+
+.algorithm-buttons button:hover,
+.starter-buttons button:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.algorithm-buttons button.active,
+.starter-buttons button.active {
+    background-color: #1a73e8;
+    color: white;
+}
+
+.depth-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.depth-selector input {
+    width: 100px;
+    padding: 10px;
+    font-size: 1.2em;
+    text-align: center;
+    border: 2px solid #1a73e8;
+    border-radius: 5px;
+    color: #333;
+}
+
+.depth-selector input:focus {
+    outline: none;
+    border-color: #1557b0;
+}
+
+.depth-hint {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.start-button {
+    width: 100%;
+    margin-top: 20px;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.3s ease;
+}
+
+.start-button:hover {
+    background-color: #1557b0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 600px) {
+    .settings-container {
+        padding: 20px;
+    }
+
+    .algorithm-buttons button,
+    .starter-buttons button {
+        width: 100%;
+        min-width: unset;
+    }
+} 

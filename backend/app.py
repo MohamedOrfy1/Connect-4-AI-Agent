@@ -24,6 +24,8 @@ app.add_middleware(
 class GameState(BaseModel):
     board: list[list[int]]
     current_player: int
+    algorithm: str = "minimax"  # Default to standard minimax
+    depth: int = 4  # Default depth
 
 @app.get("/")
 async def root():
@@ -43,8 +45,16 @@ async def get_ai_move(game_state: GameState):
         logger.debug(f"Created board with current player: {board.current_player}")
         logger.debug(f"Board state:\n{board}")
         
-        # Get AI move
-        move = decision(board, 4)
+        # Get AI move based on selected algorithm
+        use_alpha_beta = game_state.algorithm == "alphabeta"
+        use_expected_minimax = game_state.algorithm == "expectimax"
+        
+        move = decision(
+            state=board,
+            k=game_state.depth,
+            use_alpha_beta=use_alpha_beta,
+            use_expected_minimax=use_expected_minimax
+        )
         
         logger.debug(f"AI chose move: {move}")
         

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import Board from './components/Board/Board'
 import Player from './components/Player/Player'
+import Settings from './components/Settings'
 
 const ROWS = 6
 const COLS = 7
@@ -18,6 +19,23 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [isAITurn, setIsAITurn] = useState(false);
   const [scores, setScores] = useState({ red: 0, yellow: 0 });
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameSettings, setGameSettings] = useState({
+    algorithm: 'minimax',
+    depth: 4,
+    starter: 'player'
+  });
+
+  // Handle settings submission
+  const handleStartGame = (settings) => {
+    setGameSettings(settings);
+    setGameStarted(true);
+    resetGame();
+    if (settings.starter === 'ai') {
+      setCurrentPlayer(PLAYER_2);
+      setIsAITurn(true);
+    }
+  };
 
   // Convert color to number for API
   const colorToNumber = (color) => color === PLAYER_1 ? 1 : 2;
@@ -102,7 +120,8 @@ function App() {
             row.map(cell => cell === EMPTY ? 0 : (cell === PLAYER_1 ? 1 : 2))
           ),
           current_player: colorToNumber(currentPlayer),
-          use_expected_minimax: true
+          algorithm: gameSettings.algorithm,
+          depth: gameSettings.depth
         }),
       });
 
@@ -161,9 +180,9 @@ function App() {
   // Reset game
   const resetGame = () => {
     setTiles(INITIAL_TILES);
-    setCurrentPlayer(PLAYER_1);
+    setCurrentPlayer(gameSettings.starter === 'ai' ? PLAYER_2 : PLAYER_1);
     setGameOver(false);
-    setIsAITurn(false);
+    setIsAITurn(gameSettings.starter === 'ai');
     setScores({ red: 0, yellow: 0 });
   };
 
@@ -174,9 +193,18 @@ function App() {
     }
   }, [isAITurn, gameOver]);
 
+  if (!gameStarted) {
+    return (
+      <div className='App'>
+        <h1>Connect Four</h1>
+        <Settings onStart={handleStartGame} />
+      </div>
+    );
+  }
+
   return (
     <div className='App'>
-      <h1>Connect 4</h1>
+      <h1>Connect Four</h1>
       <div className="scores">
         <div className={`score red ${currentPlayer === PLAYER_1 && !gameOver ? 'active' : ''}`}>
           Red: {scores.red}
@@ -198,16 +226,20 @@ function App() {
         </div>
       ) : (
         <div className="game-status">
-          <h2>{isAITurn ? "AI is thinking..." : "Your turn"}</h2>
+          <h2>{currentPlayer === PLAYER_1 ? 'Your' : 'AI\'s'} turn</h2>
         </div>
       )}
-      <ol id="players" className="highlight-player">
-        <Player color={PLAYER_1} isActive={currentPlayer === PLAYER_1 && !isAITurn} />
-        <Player color={PLAYER_2} isActive={currentPlayer === PLAYER_2 && !isAITurn} />
-      </ol>
-      <Board tiles={tiles} onDrop={handleDrop} disabled={gameOver || isAITurn} />
+      <Board tiles={tiles} onDrop={handleDrop} />
+      <div id="players">
+        <Player color={PLAYER_1} active={currentPlayer === PLAYER_1} />
+        <Player color={PLAYER_2} active={currentPlayer === PLAYER_2} />
+      </div>
+      <button onClick={() => {
+        setGameStarted(false);
+        resetGame();
+      }}>Change Settings</button>
     </div>
-  )
+  );
 }
 
 export default App
