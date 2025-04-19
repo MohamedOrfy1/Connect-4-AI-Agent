@@ -22,8 +22,8 @@ class TreeNode:
         }
     
     def add_child(self, child_node):
-        self.children.append(child_node)
-        # self.children.append(json.dumps(child_node.to_dict()))
+        # self.children.append(child_node)
+        self.children.append(child_node.to_dict())
 
     def set_best_child(self, best_child_node):
         self.best_child = best_child_node.to_dict()
@@ -34,4 +34,4 @@ class TreeNode:
             if isinstance(child, TreeNode):
                 child.print_tree(indent + 2)
             else:
-                print("=" * (indent + 2) + f"(Serialized Child): {json.dumps(child)}")
+                print("=" * (indent + 2) + f"(Serialized Child): {child}")

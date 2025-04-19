@@ -1,4 +1,5 @@
 from src.models.board import ConnectFourBoard
+from src.models.node import TreeNode
 
 def eval(board: ConnectFourBoard) -> int:
     """
@@ -200,13 +201,21 @@ def maximize(state: ConnectFourBoard, k: int, current_depth: int = 0
              beta: float = float('inf')):
     
     is_terminal = state.is_full()
+    board_str = str(state)  
+
     if current_depth == k or is_terminal:
         score = eval(state)
         print(f"Leaf node at depth {current_depth}, score: {score}")
-        return None, None, score
+        return None, TreeNode(move=None, score=score, player=state.current_player, depth=current_depth, board_str=board_str)
     
-    max_move, max_child, max_utility = None, None, float('-inf')
-
+    best_move, best_child, max_utility = None, None, float('-inf')
+    
+    root_node = TreeNode(move=None, 
+                         score=None, 
+                         player=state.current_player, 
+                         depth=current_depth, 
+                         board_str=board_str)
+    
     valid_moves = state.get_valid_moves()
     print(f"Depth {current_depth}, considering moves: {valid_moves}")
     
@@ -214,22 +223,28 @@ def maximize(state: ConnectFourBoard, k: int, current_depth: int = 0
         new_board = state.copy()
         new_board.drop_piece(move) # child state 
         
-        _, _, utility = minimize(new_board, k, current_depth + 1, use_alpha_beta, alpha, beta)
-        print(f"Depth {current_depth}, Move {move}, Utility: {utility}")
+        _, child_node = minimize(new_board, k, current_depth + 1, use_alpha_beta, alpha, beta)
+        root_node.add_child(child_node)
+        child_node.move = move
+
+        print(f"Depth {current_depth}, Move {move}, Utility: {child_node.score}")
         
-        if utility > max_utility:
-            max_utility = utility
-            max_move = move
-            max_child = new_board
-            print(f"Depth {current_depth}, New best move: {move} with utility: {utility}")
+        if child_node.score > max_utility:
+            max_utility = child_node.score
+            best_move = move
+            best_child = child_node
 
         if use_alpha_beta:
             if max_utility >= beta:
-                break  # Beta cut-off (since alpha >= beta)
+                break
             if max_utility > alpha:
                 alpha = max_utility
-                        
-    return max_move, max_child.__str__(), max_utility
+
+    root_node.move = best_move
+    root_node.score = max_utility
+    root_node.set_best_child(best_child)
+
+    return best_move, root_node
 
 def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0,
              use_alpha_beta: bool = False,
@@ -237,13 +252,20 @@ def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0,
              beta: float = float('inf')):
     
     is_terminal = state.is_full()
+    board_str = str(state)
+
     if current_depth == k or is_terminal:
         score = eval(state)
         print(f"Leaf node at depth {current_depth}, score: {score}")
-        return None, None, score
-    
-    min_move, min_child, min_utility = None, None, float('inf')
+        return None, TreeNode(move=None, score=score, player=state.current_player, depth=current_depth, board_str=board_str)
 
+    best_move, best_child, min_utility = None, None, float('inf')    
+    root_node = TreeNode(move=None, 
+                         score=None, 
+                         player=state.current_player, 
+                         depth=current_depth, 
+                         board_str=board_str)
+    
     valid_moves = state.get_valid_moves()
     print(f"Depth {current_depth}, considering moves: {valid_moves}")
     
@@ -251,14 +273,16 @@ def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0,
         new_board = state.copy()
         new_board.drop_piece(move)  # child state
 
-        _, _, utility = maximize(new_board, k, current_depth + 1, use_alpha_beta, alpha, beta)
-        print(f"Depth {current_depth}, Move {move}, Utility: {utility}")
-        
-        if utility < min_utility:
-            min_utility = utility
-            min_move = move
-            min_child = new_board
-            print(f"Depth {current_depth}, New best move: {move} with utility: {utility}")
+        _, child_node = maximize(new_board, k, current_depth + 1, use_alpha_beta, alpha, beta)
+        root_node.add_child(child_node)
+        child_node.move = move
+
+        print(f"Depth {current_depth}, Move {move}, Utility: {child_node.score}")
+
+        if child_node.score < min_utility:
+            min_utility = child_node.score
+            best_move = move
+            best_child = child_node
 
         if use_alpha_beta:
             if min_utility <= alpha:
@@ -266,7 +290,11 @@ def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0,
             if min_utility < beta:
                 beta = min_utility
 
-    return min_move, min_child.__str__(), min_utility
+    root_node.move = best_move
+    root_node.score = min_utility
+    root_node.set_best_child(best_child)
+
+    return best_move, root_node
 
 def decision(state: ConnectFourBoard, k: int, 
              use_alpha_beta: bool = False, 
@@ -416,14 +444,17 @@ def decision(state: ConnectFourBoard, k: int,
     if use_alpha_beta:
         alpha = float('-inf')
         beta = float('inf')
-        best_move, _, utility = maximize(state, k, 0, True, alpha, beta)
+        best_move, root = maximize(state, k, 0, True, alpha, beta)
+        utility = root.score
         print(f"Chose move {best_move} with utility {utility}")
     elif use_expected_minimax:
-        best_move, _, utility = expected_max(state, k, 0)
+        best_move, root = expected_max(state, k, 0)
+        utility = root.score
         print(f"Chose move {best_move} with utility {utility}")
     else:
         # Regular minimax without pruning
-        best_move, _, utility = maximize(state, k, 0, False)
+        best_move, root = maximize(state, k, 0, False)
+        utility = root.score
         print(f"Chose move {best_move} with utility {utility}")
     
     if best_move is not None:
@@ -439,12 +470,21 @@ def decision(state: ConnectFourBoard, k: int,
     return valid_moves[0] if valid_moves else -1
 
 def expected_max(state: ConnectFourBoard, k: int, current_depth: int = 0):
-    if current_depth == k or state.is_full():
-        return None, None, eval(state)
+    is_terminal = state.is_full()
+    board_str = str(state)
 
-    best_move = None
-    best_child_str = None
-    best_expected_utility = float('-inf')
+    if current_depth == k or is_terminal:
+        score = eval(state)
+        return None, TreeNode(move=None, score=score, player=state.current_player, depth=current_depth, board_str=board_str)
+
+
+    best_move, best_child, best_expected_utility = None, None, float('-inf')
+    root_node = TreeNode(move=None,
+                         score=None, 
+                         player=state.current_player, 
+                         depth=current_depth, 
+                         board_str=board_str)
+    
 
     for move in state.get_valid_moves():
         expected_utility = 0.0
@@ -470,25 +510,39 @@ def expected_max(state: ConnectFourBoard, k: int, current_depth: int = 0):
         for col, prob in zip(neighbors, probs):
             new_state = state.copy()
             new_state.drop_piece(col)
-            _, _, utility = expected_min(new_state, k, current_depth + 1)
-            expected_utility += prob * utility
+
+            _, child_node = expected_min(new_state, k, current_depth + 1)
+            child_node.move = move
+            root_node.add_child(child_node)
+
+            expected_utility += prob * child_node.score
 
         if expected_utility > best_expected_utility:
             best_expected_utility = expected_utility
             best_move = move
-            best_child_str = new_state.__str__()
+            best_child = child_node
 
-    return best_move, best_child_str, best_expected_utility
+    root_node.move = best_move
+    root_node.score = best_expected_utility
+    root_node.set_best_child(best_child)
 
-
+    return best_move, root_node
 
 def expected_min(state: ConnectFourBoard, k: int, current_depth: int = 0):
-    if current_depth == k or state.is_full():
-        return None, None, eval(state)
+    is_terminal = state.is_full()
+    board_str = str(state)
 
-    best_move = None
-    best_child_str = None
-    best_expected_utility = float('inf')
+    if current_depth == k or is_terminal:
+        score = eval(state)
+         
+        return None, TreeNode(move=None, score=score, player=state.current_player, depth=current_depth, board_str=board_str) 
+
+    best_move, best_child, best_expected_utility = None, None, float('inf')
+    root_node = TreeNode(move=None,
+                         score=None, 
+                         player=state.current_player, 
+                         depth=current_depth, 
+                         board_str=board_str)
 
     for move in state.get_valid_moves():
         expected_utility = 0.0
@@ -514,13 +568,20 @@ def expected_min(state: ConnectFourBoard, k: int, current_depth: int = 0):
         for col, prob in zip(neighbors, probs):
             new_state = state.copy()
             new_state.drop_piece(col)
-            _, _, utility = expected_max(new_state, k, current_depth + 1)
-            expected_utility += prob * utility
+
+            _, child_node = expected_max(new_state, k, current_depth + 1)
+            child_node.move = move
+            root_node.add_child(child_node)
+
+            expected_utility += prob * child_node.score
 
         if expected_utility < best_expected_utility:
             best_expected_utility = expected_utility
             best_move = move
-            best_child_str = new_state.__str__()
+            best_child = child_node
+    
+    root_node.move = best_move
+    root_node.score = best_expected_utility
+    root_node.set_best_child(best_child)
 
-    return best_move, best_child_str, best_expected_utility
-
+    return best_move, root_node
