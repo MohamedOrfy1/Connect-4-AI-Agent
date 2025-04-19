@@ -1,6 +1,9 @@
 from src.models.board import ConnectFourBoard
 from src.models.node import TreeNode
 
+MAX_PLAYER = 2 # Ai player
+MIN_PLAYER = 1 # Opponent player
+
 def eval(board: ConnectFourBoard) -> int:
     """
     Evaluate the current board state.
@@ -296,178 +299,178 @@ def minimize(state: ConnectFourBoard, k: int, current_depth: int = 0,
 
     return best_move, root_node
 
-def decision(state: ConnectFourBoard, k: int, 
-             use_alpha_beta: bool = False, 
-             use_expected_minimax: bool = False) -> int:
-    print(f"\nMaking decision for player {state.current_player}")
-    print(f"Current board state:\n{state}")
+# def decision(state: ConnectFourBoard, k: int, 
+#              use_alpha_beta: bool = False, 
+#              use_expected_minimax: bool = False) -> int:
+#     print(f"\nMaking decision for player {state.current_player}")
+#     print(f"Current board state:\n{state}")
     
-    valid_moves = state.get_valid_moves()
+#     valid_moves = state.get_valid_moves()
     
-    # First, check if opponent has an immediate win and block it
-    opponent = 3 - state.current_player
-    for move in valid_moves:
-        test_board = state.copy()
-        test_board.current_player = opponent
-        test_board.drop_piece(move)
-        if test_board.check_winner() == opponent:
-            print(f"Found blocking move for immediate opponent win: {move}")
-            return move
+#     # First, check if opponent has an immediate win and block it
+#     opponent = 3 - state.current_player
+#     for move in valid_moves:
+#         test_board = state.copy()
+#         test_board.current_player = opponent
+#         test_board.drop_piece(move)
+#         if test_board.check_winner() == opponent:
+#             print(f"Found blocking move for immediate opponent win: {move}")
+#             return move
     
-    # Then check for our immediate winning moves
-    for move in valid_moves:
-        test_board = state.copy()
-        test_board.drop_piece(move)
-        if test_board.check_winner() == state.current_player:
-            # Verify this move doesn't allow opponent to win first
-            if move in valid_moves:
-                above_move_board = test_board.copy()
-                if above_move_board.is_valid_move(move):  # Check if there's space above
-                    above_move_board.current_player = opponent
-                    above_move_board.drop_piece(move)
-                    if above_move_board.check_winner() != opponent:  # Make sure opponent can't win above our move
-                        print(f"Found safe winning move: {move}")
-                        return move
-            else:
-                print(f"Found winning move: {move}")
-                return move
+#     # Then check for our immediate winning moves
+#     for move in valid_moves:
+#         test_board = state.copy()
+#         test_board.drop_piece(move)
+#         if test_board.check_winner() == state.current_player:
+#             # Verify this move doesn't allow opponent to win first
+#             if move in valid_moves:
+#                 above_move_board = test_board.copy()
+#                 if above_move_board.is_valid_move(move):  # Check if there's space above
+#                     above_move_board.current_player = opponent
+#                     above_move_board.drop_piece(move)
+#                     if above_move_board.check_winner() != opponent:  # Make sure opponent can't win above our move
+#                         print(f"Found safe winning move: {move}")
+#                         return move
+#             else:
+#                 print(f"Found winning move: {move}")
+#                 return move
     
-    # Check for opponent's two-move win threats
-    opponent_winning_moves = set()
-    for move in valid_moves:
-        test_board = state.copy()
-        test_board.current_player = opponent
-        test_board.drop_piece(move)
-        # Check if this move would give opponent a winning move next turn
-        next_valid_moves = test_board.get_valid_moves()
-        for next_move in next_valid_moves:
-            next_board = test_board.copy()
-            next_board.drop_piece(next_move)
-            if next_board.check_winner() == opponent:
-                opponent_winning_moves.add(move)
-                break
+#     # Check for opponent's two-move win threats
+#     opponent_winning_moves = set()
+#     for move in valid_moves:
+#         test_board = state.copy()
+#         test_board.current_player = opponent
+#         test_board.drop_piece(move)
+#         # Check if this move would give opponent a winning move next turn
+#         next_valid_moves = test_board.get_valid_moves()
+#         for next_move in next_valid_moves:
+#             next_board = test_board.copy()
+#             next_board.drop_piece(next_move)
+#             if next_board.check_winner() == opponent:
+#                 opponent_winning_moves.add(move)
+#                 break
     
-    # If opponent has multiple winning moves, try to block one of them
-    if len(opponent_winning_moves) >= 2:
-        # Find the best blocking move using evaluation
-        best_block = None
-        best_score = float('-inf')
-        for move in opponent_winning_moves:
-            test_board = state.copy()
-            test_board.drop_piece(move)
-            score = eval(test_board)
-            if score > best_score:
-                best_score = score
-                best_block = move
-        if best_block is not None:
-            print(f"Found blocking move for multiple threats: {best_block}")
-            return best_block
+#     # If opponent has multiple winning moves, try to block one of them
+#     if len(opponent_winning_moves) >= 2:
+#         # Find the best blocking move using evaluation
+#         best_block = None
+#         best_score = float('-inf')
+#         for move in opponent_winning_moves:
+#             test_board = state.copy()
+#             test_board.drop_piece(move)
+#             score = eval(test_board)
+#             if score > best_score:
+#                 best_score = score
+#                 best_block = move
+#         if best_block is not None:
+#             print(f"Found blocking move for multiple threats: {best_block}")
+#             return best_block
     
-    # Check for moves that create multiple threats while preventing opponent wins
-    best_move = None
-    max_threats = -1
-    best_score = float('-inf')
+#     # Check for moves that create multiple threats while preventing opponent wins
+#     best_move = None
+#     max_threats = -1
+#     best_score = float('-inf')
     
-    for move in valid_moves:
-        # Skip moves that would give opponent an immediate win next turn
-        if move in opponent_winning_moves:
-            continue
+#     for move in valid_moves:
+#         # Skip moves that would give opponent an immediate win next turn
+#         if move in opponent_winning_moves:
+#             continue
             
-        test_board = state.copy()
-        test_board.drop_piece(move)
+#         test_board = state.copy()
+#         test_board.drop_piece(move)
         
-        # Check if this move allows opponent to win in their next move
-        allows_opponent_win = False
-        for opp_move in test_board.get_valid_moves():
-            opp_board = test_board.copy()
-            opp_board.current_player = opponent
-            opp_board.drop_piece(opp_move)
-            if opp_board.check_winner() == opponent:
-                allows_opponent_win = True
-                break
+#         # Check if this move allows opponent to win in their next move
+#         allows_opponent_win = False
+#         for opp_move in test_board.get_valid_moves():
+#             opp_board = test_board.copy()
+#             opp_board.current_player = opponent
+#             opp_board.drop_piece(opp_move)
+#             if opp_board.check_winner() == opponent:
+#                 allows_opponent_win = True
+#                 break
         
-        if allows_opponent_win:
-            continue
+#         if allows_opponent_win:
+#             continue
         
-        threats = 0
+#         threats = 0
         
-        # Check horizontal threats
-        for row in range(test_board.height):
-            for col in range(test_board.width - 3):
-                window = test_board.board[row, col:col+4]
-                if sum(window == state.current_player) == 3 and sum(window == 0) == 1:
-                    threats += 1
+#         # Check horizontal threats
+#         for row in range(test_board.height):
+#             for col in range(test_board.width - 3):
+#                 window = test_board.board[row, col:col+4]
+#                 if sum(window == state.current_player) == 3 and sum(window == 0) == 1:
+#                     threats += 1
         
-        # Check vertical threats
-        for row in range(test_board.height - 3):
-            for col in range(test_board.width):
-                window = test_board.board[row:row+4, col]
-                if sum(window == state.current_player) == 3 and sum(window == 0) == 1:
-                    threats += 1
+#         # Check vertical threats
+#         for row in range(test_board.height - 3):
+#             for col in range(test_board.width):
+#                 window = test_board.board[row:row+4, col]
+#                 if sum(window == state.current_player) == 3 and sum(window == 0) == 1:
+#                     threats += 1
         
-        # Check diagonal threats
-        for row in range(test_board.height - 3):
-            for col in range(test_board.width - 3):
-                # Positive slope
-                window = [test_board.board[row+i, col+i] for i in range(4)]
-                if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                    threats += 1
+#         # Check diagonal threats
+#         for row in range(test_board.height - 3):
+#             for col in range(test_board.width - 3):
+#                 # Positive slope
+#                 window = [test_board.board[row+i, col+i] for i in range(4)]
+#                 if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
+#                     threats += 1
                 
-                # Negative slope
-                if row >= 3:
-                    window = [test_board.board[row-i, col+i] for i in range(4)]
-                    if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                        threats += 1
+#                 # Negative slope
+#                 if row >= 3:
+#                     window = [test_board.board[row-i, col+i] for i in range(4)]
+#                     if sum(x == state.current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
+#                         threats += 1
         
-        # Consider potential threats (two in a row with two empty spaces)
-        for row in range(test_board.height):
-            for col in range(test_board.width - 3):
-                window = test_board.board[row, col:col+4]
-                if sum(window == state.current_player) == 2 and sum(window == 0) == 2:
-                    threats += 0.5
+#         # Consider potential threats (two in a row with two empty spaces)
+#         for row in range(test_board.height):
+#             for col in range(test_board.width - 3):
+#                 window = test_board.board[row, col:col+4]
+#                 if sum(window == state.current_player) == 2 and sum(window == 0) == 2:
+#                     threats += 0.5
         
-        # Calculate position score
-        score = eval(test_board)
+#         # Calculate position score
+#         score = eval(test_board)
         
-        # Update best move if this creates more threats or has a better score
-        if threats > max_threats or (threats == max_threats and score > best_score):
-            max_threats = threats
-            best_score = score
-            best_move = move
-            print(f"Found move {move} with {threats} threats and score {score}")
+#         # Update best move if this creates more threats or has a better score
+#         if threats > max_threats or (threats == max_threats and score > best_score):
+#             max_threats = threats
+#             best_score = score
+#             best_move = move
+#             print(f"Found move {move} with {threats} threats and score {score}")
     
-    if best_move is not None:
-        print(f"Chose move {best_move} creating {max_threats} threats with score {best_score}")
-        return best_move
+#     if best_move is not None:
+#         print(f"Chose move {best_move} creating {max_threats} threats with score {best_score}")
+#         return best_move
     
-    # If no special moves found, use minimax
-    if use_alpha_beta:
-        alpha = float('-inf')
-        beta = float('inf')
-        best_move, root = maximize(state, k, 0, True, alpha, beta)
-        utility = root.score
-        print(f"Chose move {best_move} with utility {utility}")
-    elif use_expected_minimax:
-        best_move, root = expected_max(state, k, 0)
-        utility = root.score
-        print(f"Chose move {best_move} with utility {utility}")
-    else:
-        # Regular minimax without pruning
-        best_move, root = maximize(state, k, 0, False)
-        utility = root.score
-        print(f"Chose move {best_move} with utility {utility}")
+#     # If no special moves found, use minimax
+#     if use_alpha_beta:
+#         alpha = float('-inf')
+#         beta = float('inf')
+#         best_move, root = maximize(state, k, 0, True, alpha, beta)
+#         utility = root.score
+#         print(f"Chose move {best_move} with utility {utility}")
+#     elif use_expected_minimax:
+#         best_move, root = expected_max(state, k, 0)
+#         utility = root.score
+#         print(f"Chose move {best_move} with utility {utility}")
+#     else:
+#         # Regular minimax without pruning
+#         best_move, root = maximize(state, k, 0, False)
+#         utility = root.score
+#         print(f"Chose move {best_move} with utility {utility}")
     
-    if best_move is not None:
-        return best_move
+#     if best_move is not None:
+#         return best_move
     
-    # If no good move found, prefer center column, then columns closer to center
-    center = state.width // 2
-    for col in [center] + [center + i for i in range(1, center + 1) if center + i < state.width] + [center - i for i in range(1, center + 1) if center - i >= 0]:
-        if col in valid_moves:
-            return col
+#     # If no good move found, prefer center column, then columns closer to center
+#     center = state.width // 2
+#     for col in [center] + [center + i for i in range(1, center + 1) if center + i < state.width] + [center - i for i in range(1, center + 1) if center - i >= 0]:
+#         if col in valid_moves:
+#             return col
     
-    # If still no move found, return first valid move
-    return valid_moves[0] if valid_moves else -1
+#     # If still no move found, return first valid move
+#     return valid_moves[0] if valid_moves else -1
 
 def expected_max(state: ConnectFourBoard, k: int, current_depth: int = 0):
     is_terminal = state.is_full()
@@ -585,3 +588,26 @@ def expected_min(state: ConnectFourBoard, k: int, current_depth: int = 0):
     root_node.set_best_child(best_child)
 
     return best_move, root_node
+
+def decision(state: ConnectFourBoard, k: int, 
+             use_alpha_beta: bool = False, 
+             use_expected_minimax: bool = False) -> int:
+    print(f"\nMaking decision for player {state.current_player}")
+    print(f"Current board state:\n{state}")
+    if use_alpha_beta:
+        alpha = float('-inf')
+        beta = float('inf')
+        best_move, root = maximize(state, k, 0, True, alpha, beta)
+    elif use_expected_minimax:
+        best_move, root = expected_max(state, k, 0) 
+    else:
+         # Regular minimax without pruning
+        best_move, root = maximize(state, k, 0, False)
+    
+    utility = root.score
+
+    if best_move is not None:
+        print(f"Chose move {best_move} with utility {utility}")
+        return best_move
+    else:
+        return -1
