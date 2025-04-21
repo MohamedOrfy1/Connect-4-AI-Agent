@@ -158,9 +158,12 @@ class ConnectFourBoard:
             2 if Player 2 has a connected-four,
             None if no player has a connected-four.
         """
-        if self.count_fours(1) > 0:
+        player_1_fours = self.count_fours(1)
+        player_2_fours = self.count_fours(2)
+        
+        if player_1_fours > player_2_fours:
             return 1
-        if self.count_fours(2) > 0:
+        if player_2_fours > player_1_fours:
             return 2
         return None
 

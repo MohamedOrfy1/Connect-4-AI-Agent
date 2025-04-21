@@ -6,196 +6,119 @@ MIN_PLAYER = 1 # Opponent player
 
 def eval(board: ConnectFourBoard) -> int:
     """
-    Evaluate the current board state.
-    Returns positive value if the current player is winning, negative if opponent is winning.
-    The magnitude indicates how good/bad the position is.
-    
-    Evaluation factors:
-    1. Connected fours (highest weight)
-    2. Three in a row with space
-    3. Center column control
-    4. Two in a row with empty spaces
+    Evaluate the board state considering:
+    1. Connected fours (winning conditions)
+    2. Three-in-a-row threats
+    3. Two-in-a-row potential
+    4. Positional advantages
     """
-    # Terminal state check
-    # Example of a winning state for current player (O):
-    # . . . . . . .
-    # . . . . . . .
-    # . . O O O O .  <- Four in a row (win)
-    # . . X X O X .
-    # . . O X X O .
-    # . X O X O X .
-    # Score: 10000
     if board.is_full():
-        winner = board.check_winner()
-        if winner == board.current_player:
+        if board.check_winner() == MAX_PLAYER:
             return 10000
-        elif winner == 3 - board.current_player:
+        elif board.check_winner() == MIN_PLAYER:
             return -10000
-        return 0
-    
-    # Check for immediate wins
-    current_fours = board.count_fours(board.current_player)
-    opponent_fours = board.count_fours(3 - board.current_player)
-    if current_fours > 0:
-        return 10000
-    if opponent_fours > 0:
-        return -10000
+        else:
+            return 0
     
     score = 0
-    current_player = board.current_player
-    opponent = 3 - current_player
-    
-    # Count number of threats (three in a row with space)
-    current_threats = 0
-    opponent_threats = 0
-    
-    # Check horizontal threats and patterns
-    # Example of horizontal threat:
-    # . . . . . . .
-    # . . . . . . .
-    # . . O O O . .  <- Three in a row with space (threat)
-    # . . X X O X .  Score: 600 + (2 * 50) = 700
-    # . . O X X O .
-    # . X O X O X .
+    max_threats = 0
+    min_threats = 0
+
+    # Count connected fours
+    max_player_fours = board.count_fours(MAX_PLAYER)
+    min_player_fours = board.count_fours(MIN_PLAYER)
+    score = (max_player_fours - min_player_fours) * 1000
+
+    # Check horizontal patterns
     for row in range(board.height):
         for col in range(board.width - 3):
             window = board.board[row, col:col+4]
-            # Three in a row threats
-            if sum(window == current_player) == 3 and sum(window == 0) == 1:
-                current_threats += 1
-                score += 600 + (row * 50)  # More points for lower rows
-            if sum(window == opponent) == 3 and sum(window == 0) == 1:
-                opponent_threats += 1
-                score -= 600 + (row * 50)
             
-            # Two in a row patterns
-            # Example of connected twos:
-            # . . . . . . .
-            # . . . . . . .
-            # . . . . . . .
-            # . . O O . . .  <- Connected two with spaces
-            # . . X X O X .  Score: 300
-            # . X O X O X .
-            #
-            # Example of separated twos:
-            # . . . . . . .
-            # . . . . . . .
-            # . . . . . . .
-            # . . O . O . .  <- Separated two with spaces
-            # . . X X O X .  Score: 200
-            # . X O X O X .
-            if sum(window == current_player) == 2 and sum(window == 0) == 2:
-                # Connected twos are worth more
-                if any(window[i:i+2].all() == current_player for i in range(3)):
+            # Three in a row threats
+            if sum(window == MAX_PLAYER) == 3 and sum(window == 0) == 1:
+                max_threats += 1
+                score += 600 + (row * 50)  # More points for lower rows
+            if sum(window == MIN_PLAYER) == 3 and sum(window == 0) == 1:
+                min_threats += 1
+                score -= 600 + (row * 50)
+                
+            # Two in a row potential
+            if sum(window == MAX_PLAYER) == 2 and sum(window == 0) == 2:
+                if any(window[i:i+2].all() == MAX_PLAYER for i in range(3)):
                     score += 300
                 else:
                     score += 200
-            if sum(window == opponent) == 2 and sum(window == 0) == 2:
-                if any(window[i:i+2].all() == opponent for i in range(3)):
-                    score -= 300
+                # score += 200 + (row * 25)
+            if sum(window == MIN_PLAYER) == 2 and sum(window == 0) == 2:
+                if any(window[i:i+2].all() == MIN_PLAYER for i in range(3)):
+                    score += 300
                 else:
-                    score -= 200
-    
-    # Check vertical threats
-    # Example of vertical threat:
-    # . . . . . . .
-    # . . . . . . .
-    # . . O . . . .
-    # . . O . . . .  <- Three in a row with space above
-    # . . O X X O .  Score: 800
-    # . X O X O X .
+                    score += 200
+                # score -= 200 + (row * 25)
+
+    # Check vertical patterns
     for row in range(board.height - 3):
         for col in range(board.width):
             window = board.board[row:row+4, col]
-            if sum(window == current_player) == 3 and sum(window == 0) == 1:
-                current_threats += 1
-                score += 800  # Vertical threats are usually stronger
-            if sum(window == opponent) == 3 and sum(window == 0) == 1:
-                opponent_threats += 1
+            
+            # Three in a row threats
+            if sum(window == MAX_PLAYER) == 3 and sum(window == 0) == 1:
+                max_threats += 1
+                score += 800
+            if sum(window == MIN_PLAYER) == 3 and sum(window == 0) == 1:
+                min_threats += 1
                 score -= 800
-    
-    # Check diagonal threats
-    # Example of positive slope diagonal threat:
-    # . . . . . . .
-    # . . . . . . .
-    # . . O . . . .
-    # . . X O . . .  <- Diagonal three with space
-    # . . O X O . .  Score: 700
-    # . X O X O X .
-    #
-    # Example of negative slope diagonal threat:
-    # . . . . . . .
-    # . . . . . . .
-    # . . . . O . .
-    # . . . O X . .  <- Diagonal three with space
-    # . . O X X O .  Score: 700
-    # . X O X O X .
+
+    # Check diagonal patterns (positive slope)
     for row in range(board.height - 3):
         for col in range(board.width - 3):
-            # Positive slope diagonal
             window = [board.board[row+i, col+i] for i in range(4)]
-            if sum(x == current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                current_threats += 1
-                score += 700
-            if sum(x == opponent for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                opponent_threats += 1
-                score -= 700
             
-            # Negative slope diagonal
-            if row >= 3:
-                window = [board.board[row-i, col+i] for i in range(4)]
-                if sum(x == current_player for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                    current_threats += 1
-                    score += 700
-                if sum(x == opponent for x in window) == 3 and sum(x == 0 for x in window) == 1:
-                    opponent_threats += 1
-                    score -= 700
-    
-    # Multiple threats bonus
-    # Example of multiple threats:
-    # . . . . . . .
-    # . . . . . . .
-    # . . O O O . .  <- Horizontal threat
-    # . . O X O . .  <- Diagonal threat
-    # . . O X X O .  Score: Original threats + 2000 bonus
-    # . X O X O X .
-    if current_threats >= 2:
-        score += 2000  # Significant bonus for having multiple threats
-    if opponent_threats >= 2:
-        score -= 2500  # Even bigger penalty for allowing multiple opponent threats
-    
-    # Center control (weighted by row)
-    # Example of center control:
-    # . . . . . . .
-    # . . . O . . .
-    # . . . O . . .  <- Center column control
-    # . . . O . . .  Score: (50 + 10) + (50 + 20) + (50 + 30) = 210
-    # . . X X O X .
-    # . X O X O X .
+            # Three in a row threats
+            if sum(x == MAX_PLAYER for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                max_threats += 1
+                score += 700
+            if sum(x == MIN_PLAYER for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                min_threats += 1
+                score -= 700
+                
+    # Check diagonal patterns (negative slope)
+    for row in range(3, board.height):
+        for col in range(board.width - 3):
+            window = [board.board[row-i, col+i] for i in range(4)]
+            
+            # Three in a row threats
+            if sum(x == MAX_PLAYER for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                max_threats += 1
+                score += 700
+            if sum(x == MIN_PLAYER for x in window) == 3 and sum(x == 0 for x in window) == 1:
+                min_threats += 1
+                score -= 700
+
+    # Center column control bonus
     center = board.width // 2
     for row in range(board.height):
-        if board.board[row][center] == current_player:
+        if board.board[row][center] == MAX_PLAYER:
             score += 50 + (row * 10)  # More value for center pieces in lower rows
-        elif board.board[row][center] == opponent:
+        elif board.board[row][center] == MIN_PLAYER:
             score -= 50 + (row * 10)
-    
-    # Adjacent center columns control
-    # Example of adjacent center control:
-    # . . . . . . .
-    # . . O O O . .  <- Control of columns 2,3,4
-    # . . O X O . .  Score: Multiple of (30 + row * 5)
-    # . . O X X O .  for each piece in columns 2 and 4
-    # . X O X O X .
+
+    # Bonus for multiple threats
+    if max_threats >= 2:
+        score += 1000  # Bonus for having multiple threats
+    if min_threats >= 2:
+        score -= 1500  # Penalty for allowing multiple threats
+
     for row in range(board.height):
-        if board.board[row][center-1] == current_player:
+        if board.board[row][center-1] == MAX_PLAYER:
             score += 30 + (row * 5)
-        if board.board[row][center+1] == current_player:
+        if board.board[row][center+1] == MAX_PLAYER:
             score += 30 + (row * 5)
-        if board.board[row][center-1] == opponent:
+        if board.board[row][center-1] == MIN_PLAYER:
             score -= 30 + (row * 5)
-        if board.board[row][center+1] == opponent:
+        if board.board[row][center+1] == MIN_PLAYER:
             score -= 30 + (row * 5)
-    
+
     return score
 
 def maximize(state: ConnectFourBoard, k: int, current_depth: int = 0
