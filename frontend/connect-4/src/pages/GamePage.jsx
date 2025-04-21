@@ -132,6 +132,12 @@ function GamePage() {
 
             const data = await response.json();
             const aiMove = data.move;
+            const treeRoot = data.root;
+            //////////////// For Testing
+            localStorage.setItem('tree', JSON.stringify(treeRoot));
+
+            console.log('AI Move:', aiMove);
+            console.log('AI Tree Root:', treeRoot);
 
             // Make the AI move
             const newTiles = tiles.map(row => [...row]);

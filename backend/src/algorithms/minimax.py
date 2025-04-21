@@ -531,6 +531,6 @@ def decision(state: ConnectFourBoard, k: int,
 
     if best_move is not None:
         print(f"Chose move {best_move} with utility {utility}")
-        return best_move
+        return best_move, root
     else:
         return -1

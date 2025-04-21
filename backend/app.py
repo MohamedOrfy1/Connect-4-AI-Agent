@@ -49,7 +49,7 @@ async def get_ai_move(game_state: GameState):
         use_alpha_beta = game_state.algorithm == "alphabeta"
         use_expected_minimax = game_state.algorithm == "expectimax"
         
-        move = decision(
+        move, root = decision(
             state=board,
             k=game_state.depth,
             use_alpha_beta=use_alpha_beta,
@@ -61,7 +61,10 @@ async def get_ai_move(game_state: GameState):
         if move == -1:
             raise HTTPException(status_code=400, detail="No valid moves available")
             
-        return {"move": move}
+        return {
+            "move": move,
+            "root": root.to_dict()
+        }
     except Exception as e:
         logger.error(f"Error in get_ai_move: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")

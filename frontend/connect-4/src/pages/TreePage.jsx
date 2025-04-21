@@ -1,6 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Tree from 'react-d3-tree';
 import '../App.css';
+
+// Util: Convert board string to 2D array
+function parseBoardString(boardStr) {
+    const lines = boardStr.trim().split('\n');
+    const board = lines.slice(0, 6).map(line =>
+        line.trim().split(' ').map(cell => {
+            if (cell === 'X') return 1;
+            if (cell === 'O') return 2;
+            return 0;
+        })
+    );
+    return board;
+}
+
+// Util: Convert raw node to d3-tree-compatible node
+function convertToTreeNode(aiNode) {
+    return {
+        name: `Move ${aiNode.move ?? '-'} | Player${aiNode.player} | Score: ${aiNode.score}`,
+        board: parseBoardString(aiNode.board),
+        children: aiNode.children?.map(convertToTreeNode) || []
+    };
+}
 
 const renderMiniBoard = (board) => (
     <table className="mini-board">
@@ -16,77 +38,44 @@ const renderMiniBoard = (board) => (
     </table>
 );
 
-const renderCustomNode = ({ nodeDatum }) => {
-    return (
-        <foreignObject width={200} height={160}>
-            <div style={{ border: '1px solid black', background: 'white', borderRadius: 4, padding: 4 }}>
-                <h4 style={{ margin: 0 }}>{nodeDatum.name}</h4>
-                {nodeDatum.board && renderMiniBoard(nodeDatum.board)}
-            </div>
-        </foreignObject>
-    );
-};
-
-const sampleTree = {
-    name: 'Root',
-    board: [
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 0, 0, 0],
-        [0, 0, 2, 1, 0, 0, 0],
-        [0, 0, 2, 1, 0, 0, 0],
-        [0, 1, 1, 2, 0, 0, 0],
-        [2, 2, 1, 1, 0, 0, 0],
-    ],
-    children: [
-        {
-            name: 'Move 0',
-            board: [
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 1, 0, 0, 0],
-                [0, 0, 2, 1, 0, 0, 0],
-                [0, 0, 2, 1, 0, 0, 0],
-                [1, 1, 1, 2, 0, 0, 0],
-                [2, 2, 1, 1, 0, 0, 0],
-            ],
-            children: []
-        },
-        {
-            name: 'Move 1',
-            board: [
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 1, 0, 0, 0],
-                [0, 0, 2, 1, 0, 0, 0],
-                [0, 1, 2, 1, 0, 0, 0],
-                [0, 1, 1, 2, 0, 0, 0],
-                [2, 2, 1, 1, 0, 0, 0],
-            ],
-            children: []
-        },
-        {
-            name: 'Move 2',
-            board: [
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 1, 1, 0, 0, 0],
-                [0, 0, 2, 1, 0, 0, 0],
-                [0, 0, 2, 1, 0, 0, 0],
-                [0, 1, 1, 2, 0, 0, 0],
-                [2, 2, 1, 1, 0, 0, 0],
-            ],
-            children: []
-        },
-    ]
-};
+const renderCustomNode = ({ nodeDatum }) => (
+    <foreignObject width={220} height={160}>
+        <div style={{ border: '1px solid black', background: 'white', borderRadius: 4, padding: 4 , marginRight: 4}}>
+            <h4 style={{ margin: 0 }}>{nodeDatum.name}</h4>
+            {nodeDatum.board && renderMiniBoard(nodeDatum.board)}
+        </div>
+    </foreignObject>
+);
 
 function TreeVisualizer() {
+    const [treeData, setTreeData] = useState(null);
+
+    useEffect(() => {
+        const storedTree = localStorage.getItem('tree');
+        if (storedTree) {
+            try {
+                const parsed = JSON.parse(storedTree);
+                const tree = convertToTreeNode(parsed);
+                setTreeData(tree);
+            } catch (err) {
+                console.error('Failed to parse AI tree from localStorage:', err);
+            }
+        }
+    }, []);
+
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
             <h1>Minimax Tree Visualization</h1>
-            <Tree
-                data={sampleTree}
-                orientation="vertical"
-                renderCustomNodeElement={renderCustomNode}
-                nodeSize={{ x: 220, y: 200 }}
-            />
+            {treeData ? (
+                <Tree
+                    data={treeData}
+                    orientation="vertical"
+                    renderCustomNodeElement={renderCustomNode}
+                    nodeSize={{ x: 220, y: 200 }}
+                />
+            ) : (
+                <p>No tree data found in localStorage.</p>
+            )}
         </div>
     );
 }

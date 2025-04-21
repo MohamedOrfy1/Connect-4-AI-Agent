@@ -17,9 +17,10 @@ class TreeNode:
             "player": self.player,
             "depth": self.depth,
             "board": self.board_str,
-            "children": self.children,
-            "best_child": self.best_child if self.best_child else None
+            "children": [child.to_dict() if isinstance(child, TreeNode) else child for child in self.children],
+            "best_child": self.best_child.to_dict() if isinstance(self.best_child, TreeNode) else self.best_child
         }
+
     
     def add_child(self, child_node):
         # self.children.append(child_node)
