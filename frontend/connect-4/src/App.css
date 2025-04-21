@@ -143,3 +143,21 @@ button:active {
     font-size: 1.2em;
     margin: 15px 0 25px;
 }
+
+/* Tree */
+.mini-board {
+    border-collapse: collapse;
+  }
+  .mini-board td {
+    width: 15px;
+    height: 15px;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+  }
+  .mini-board .red {
+    background-color: red;
+  }
+  .mini-board .yellow {
+    background-color: gold;
+  }
+  
